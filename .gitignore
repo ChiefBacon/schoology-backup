@@ -1,0 +1,6 @@
+data/
+backup/
+testing_data/
+
+.venv
+config.toml
