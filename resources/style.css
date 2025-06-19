@@ -1,0 +1,94 @@
+/* Import a modern sans-serif font */
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;600&display=swap');
+
+:root {
+  --font-family: 'Inter', sans-serif;
+  --font-size: 18px;
+  --line-height: 1.75;
+  --text-color: #222;
+  --background-color: #fff;
+  --content-max-width: 700px;
+  --side-padding: 2rem;
+  --top-padding: 2rem;
+}
+
+body {
+  font-family: var(--font-family);
+  font-size: var(--font-size);
+  line-height: var(--line-height);
+  color: var(--text-color);
+  background-color: var(--background-color);
+  margin: 0;
+  padding: var(--top-padding) var(--side-padding);
+}
+
+main {
+  max-width: var(--content-max-width);
+  margin: 0 auto;
+}
+
+.attachments {
+  color: rgb(18, 105, 206);
+  font-style: italic;
+}
+
+code {
+  font-family: Consolas,"courier new";
+  color: crimson;
+  background-color: #f1f1f1;
+  padding: 2px;
+  font-size: 105%;
+}
+
+ /* unvisited link */
+a:link {
+  color: rgb(27, 169, 216);
+}
+
+/* visited link */
+a:visited {
+  color: rgb(147, 80, 255);
+}
+
+/* mouse over link */
+a:hover {
+  color: rgb(103, 184, 216);
+}
+
+a.button:link, a.button:visited {
+  background-color: #36bef4;
+  color: white;
+  padding: 5px 10px;
+  text-align: center;
+  text-decoration: none;
+  display: inline-block;
+  border-radius: 8px;
+  transition: background-color 200ms;
+  margin-bottom: 1rem;
+}
+
+a.button:hover, a.button:active {
+  background-color: rgb(25, 121, 230);
+}
+
+h1, h2, h3, h4, h5, h6 {
+  font-weight: 600;
+  margin-top: 0;
+  margin-bottom: 0;
+}
+
+p {
+  margin-bottom: 1.25rem;
+}
+
+details > summary {
+  padding: 0px;
+  /*font-weight: 600;
+  font-size: 120%;*/
+  border: none;
+  cursor: pointer;
+}
+
+ul {
+  list-style-type: none;
+}

@@ -5,6 +5,7 @@ from pathlib import Path
 import argparse
 import tomllib
 import html as ht
+import shutil
 
 parser = argparse.ArgumentParser(
                     prog='Schoology Backup',
@@ -19,6 +20,7 @@ args = parser.parse_args()
 config_path = args.config if args.config is not None else Path('config.toml')
 root_path = Path(args.output) if args.output is not None else Path('backup')
 root_path.mkdir(exist_ok=True)
+shutil.copyfile(Path('resources') / Path('style.css'), root_path / Path('style.css'))
 sections_root = (root_path / 'sections')
 sections_root.mkdir(exist_ok=True)
 main_data = {}
