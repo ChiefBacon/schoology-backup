@@ -31,7 +31,7 @@ with open(config_path, 'rb') as f:
 
 def mkdir_if_not_exists(dir) -> Path:
     new_path = Path(dir)
-    new_path.mkdir(exist_ok=True)
+    new_path.mkdir(exist_ok=True, parents=True)
     return new_path  
 
 def get_item_data(item_id, section_id, item_type):
@@ -129,23 +129,23 @@ def generate_section_html_with_folders(section, output_path):
     with open(output_path, "w") as f:
         f.write(html)
 
-def generate_attachments_html(data_item):
+def generate_attachments_html(data_item, heading_level = 2):
     internal_html = ""
     if any(key in data_item['attachments'] for key in ("videos", "links", "files")):
-        internal_html += "    <h2>Attachments</h2>\n"
+        internal_html += f"    <h{heading_level}>Attachments</h{heading_level}>\n"
         internal_html += ""
         if data_item['attachments'].get('files', None) is not None:
-            internal_html += "    <h3>Files</h3>\n    <ul>\n"
+            internal_html += f"    <h{heading_level+1}>Files</h{heading_level+1}>\n    <ul>\n"
             for file in data_item['attachments']['files']:
                 internal_html += f"        <li><a href='{file['path']}'>📄 {file['title']}</a></li>\n"
             internal_html += "    </ul>\n"
         if data_item['attachments'].get('links', None) is not None:
-            internal_html += "    <h3>Links</h3>\n    <ul>\n"
+            internal_html += f"    <h{heading_level+1}>Links</h{heading_level+1}>\n    <ul>\n"
             for link in data_item['attachments']['links']:
                 internal_html += f"        <li><a href='{link['url']}'>🔗 {link['title']}</a></li>\n"
             internal_html += "    </ul>\n"
         if data_item['attachments'].get('videos', None) is not None:
-            internal_html += "    <h3>Videos</h3>\n    <ul>\n"
+            internal_html += f"    <h{heading_level+1}>Videos</h{heading_level+1}>\n    <ul>\n"
             for video in data_item['attachments']['videos']:
                 internal_html += f"        <li><a href='{video['url']}'>📽️ {video['title']}</a></li>\n"
             internal_html += "    </ul>\n"
@@ -168,6 +168,12 @@ def generate_assignment_html(assignment, output_path):
     <p>{assignment['description'].replace("\n", "<br>")}</p>
 """
     html += generate_attachments_html(assignment)
+    if assignment['submissions'] is not None:
+        html += "<h2>Submissions</h2>\n"
+        for submission in assignment['submissions']:
+            html += f"<h3>Revision {submission['revision_id']}</h3>\n"
+            html += generate_attachments_html(submission, 4)
+            
     html += """  </body>
 </html>
 """
@@ -218,7 +224,7 @@ def export_page(page, output_path):
     with open(output_path, "w") as f:
         f.write(html)
 
-def process_attachments(dataobj, base_path) -> dict:
+def process_attachments(dataobj, base_path, revision_id = None) -> dict:
     attachment_list = {}
 
     has_attachments = hasattr(dataobj, 'attachments') and dataobj.attachments is not None
@@ -229,12 +235,14 @@ def process_attachments(dataobj, base_path) -> dict:
             for file in dataobj.attachments['files']['file']:
                 if file.get('converted_status', '4') == '1' and args.converted:
                     file_data = sc.get_file(file.get('converted_download_path'))
-                    file_path = f"attachments/files/{file.get('id')}.{file.get('converted_extension')}"
+                    file_path = f"attachments/files/{file.get('id')}.{file.get('converted_extension')}" if revision_id is None else f"submissions/{revision_id}/attachments/files/{file.get('id')}.{file.get('converted_extension')}"
+                    Path(file_path).parent.mkdir(exist_ok=True, parents=True)
                     with open(f"{base_path}/{file_path}", 'wb') as f:
                         f.write(file_data.content)
                 else:
                     file_data = sc.get_file(file.get('download_path'))
-                    file_path = f"attachments/files/{file.get('id')}.{file.get('extension')}"
+                    file_path = f"attachments/files/{file.get('id')}.{file.get('extension')}" if revision_id is None else f"submissions/{revision_id}/attachments/files/{file.get('id')}.{file.get('extension')}"
+                    Path(base_path / file_path).parent.mkdir(exist_ok=True, parents=True)
                     with open(f"{base_path}/{file_path}", 'wb') as f:
                         f.write(file_data.content)
                 
@@ -295,6 +303,20 @@ def process_item(item_data, item_type, section_path, section_id):
             assignment_path = Path.joinpath(section_path, 'assignments', str(item_data.id))
             mkdir_if_not_exists(assignment_path)
             attachments = process_attachments(item_data, assignment_path)
+            submissions = sc.get_assignment_submissions(section_id, assignment.id)
+            if len(submissions) > 0:
+                submission_list = []
+                filtered_submissions = [x for x in submissions if x.uid == me.id]
+                for submission in filtered_submissions:
+                    submission_attachments = process_attachments(submission, assignment_path, revision_id=submission.revision_id)
+                    submission_list.append({
+                        "created": submission.created,
+                        "draft": bool(submission.draft),
+                        "late": bool(submission.late),
+                        "revision_id": submission.revision_id,
+                        "num_items": submission.num_items,
+                        "attachments": submission_attachments
+                    })
             assignment_data = {
                 'id': assignment.id,
                 'folder_id': assignment.folder_id,
@@ -309,7 +331,8 @@ def process_item(item_data, item_type, section_path, section_id):
                 'description': assignment.description,
                 'due': assignment.due,
                 'web_url': assignment.web_url,
-                'attachments': attachments
+                'attachments': attachments,
+                'submissions': submission_list if len(submissions) > 0 else None
             }
             main_data[section_id]['assignments'].append(assignment_data)
             generate_assignment_html(assignment_data, f"{assignment_path}/assignment.html")

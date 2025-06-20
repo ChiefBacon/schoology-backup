@@ -1,0 +1,13 @@
+[project]
+name = "schoology-backup"
+version = "0.1.0"
+description = "Add your description here"
+readme = "README.md"
+requires-python = ">=3.12"
+dependencies = [
+    "schoolopy",
+    "tqdm>=4.67.1",
+]
+
+[tool.uv.sources]
+schoolopy = { path = "../schoolopy" }
