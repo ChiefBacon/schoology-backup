@@ -1,5 +1,6 @@
 data/
 backup/
+backup*/
 testing_data/
 
 .venv

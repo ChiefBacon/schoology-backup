@@ -7,6 +7,7 @@ import tomllib
 import html as ht
 import shutil
 
+# Define parser for CLI Args
 parser = argparse.ArgumentParser(
                     prog='Schoology Backup',
                     description='Back up a bunch of helpful schoology data')
@@ -17,6 +18,7 @@ parser.add_argument("-v", "--converted", action="store_true", help="Download the
 
 args = parser.parse_args()
 
+# Define some configuration variables
 config_path = args.config if args.config is not None else Path('config.toml')
 root_path = Path(args.output) if args.output is not None else Path('backup')
 root_path.mkdir(exist_ok=True)
@@ -26,15 +28,19 @@ sections_root.mkdir(exist_ok=True)
 main_data = {}
 colors_to_emojis = {"red": "🔴", "orange": "🟠", "purple": "🟣", "blue": "🔵", "green": "🟢", "yellow": "🟡", "pink": "🩷", "black": "⚫"}
 
+# Open the config file
 with open(config_path, 'rb') as f:
     config = tomllib.load(f)
 
+# Function definitions
 def mkdir_if_not_exists(dir) -> Path:
+    """Make a directory if it doesn't exist."""
     new_path = Path(dir)
     new_path.mkdir(exist_ok=True, parents=True)
     return new_path  
 
 def get_item_data(item_id, section_id, item_type):
+    """Helper function to get data for an item of varying type"""
     match item_type:
         case 'document':
             return sc.get_section_document(item_id, section_id)
@@ -44,6 +50,7 @@ def get_item_data(item_id, section_id, item_type):
             return sc.get_section_page(item_id, section_id, with_attachments=True)
 
 def generate_html(main_data, output_path):
+    """Generate the root HTML file"""
     html = """
 <!DOCTYPE html>
 <html lang="en">
@@ -62,12 +69,16 @@ def generate_html(main_data, output_path):
     html += """  </body>
 </html>
 """
+    # Write the HTML file
     with open(output_path, "w") as f:
         f.write(html)
 
 def process_folder(folder, all_items, section_id):
+    """Recursive function to process a folder and all its sub-items"""
     html = ""
     html += f"<details><summary>📁{colors_to_emojis[folder['color']]} {folder['title']}</summary><ul>\n"
+
+    # Loop through the items
     for sub_item in folder['contents']:
         if (all_items.get(sub_item['id'], None) is None) and (sub_item['type'] != 'folder'):
             raw_item_data = get_item_data(sub_item['id'], section_id, sub_item['type'])
@@ -89,6 +100,8 @@ def process_folder(folder, all_items, section_id):
     return html
 
 def generate_section_html_with_folders(section, output_path):
+    """Generate the HTML for a specific section"""
+
     all_items = {}
 
     html = f"""
@@ -130,6 +143,8 @@ def generate_section_html_with_folders(section, output_path):
         f.write(html)
 
 def generate_attachments_html(data_item, heading_level = 2):
+    """Generate the HTML for attachments"""
+
     internal_html = ""
     if any(key in data_item['attachments'] for key in ("videos", "links", "files")):
         internal_html += f"    <h{heading_level}>Attachments</h{heading_level}>\n"
@@ -152,6 +167,8 @@ def generate_attachments_html(data_item, heading_level = 2):
     return internal_html
 
 def generate_assignment_html(assignment, output_path):
+    """Generate the HTML file for an attachment"""
+
     html = f"""
 <!DOCTYPE html>
 <html lang="en">
@@ -181,6 +198,8 @@ def generate_assignment_html(assignment, output_path):
         f.write(html)
 
 def generate_document_html(doc, output_path):
+    """Generate the HTML file for a document"""
+
     html = f"""
 <!DOCTYPE html>
 <html lang="en">
@@ -202,6 +221,8 @@ def generate_document_html(doc, output_path):
         f.write(html)
 
 def export_page(page, output_path):
+    """Generate the HTML file for a page"""
+
     safe_body = ht.escape(page['body'])
     html = f"""
 <!DOCTYPE html>
@@ -225,6 +246,8 @@ def export_page(page, output_path):
         f.write(html)
 
 def process_attachments(dataobj, base_path, revision_id = None) -> dict:
+    """Process the attachments for an item"""
+
     attachment_list = {}
 
     has_attachments = hasattr(dataobj, 'attachments') and dataobj.attachments is not None
@@ -276,6 +299,8 @@ def process_attachments(dataobj, base_path, revision_id = None) -> dict:
     return attachment_list
 
 def handle_subfolder(item, section_id) -> dict:
+    """Recursive function to handle folders inside of folders"""
+
     subfolder = sc.get_section_folder(section_id, item.get('id'))
     folder_contents = []
     for sub_item in getattr(subfolder, 'folder-item'):
@@ -298,6 +323,8 @@ def handle_subfolder(item, section_id) -> dict:
     return folder_data
 
 def process_item(item_data, item_type, section_path, section_id):
+    """Process an item, download all its attachments and details"""
+
     match item_type:
         case 'assignment':
             assignment_path = Path.joinpath(section_path, 'assignments', str(item_data.id))
@@ -370,12 +397,16 @@ if __name__ == '__main__':
     sc = schoolopy.Schoology(schoolopy.Auth(config['key'], config['secret']))
     sc.limit = config['limit']
 
+    # Get the current user's data
     me = sc.get_me()
-
     sections = sc.get_user_sections(me.id)
+    if len(sections) <= 0:
+        exit("No sections found! Exiting...")
 
+    # Loop through each section that the user is in
     with tqdm(total=len(sections), desc="Processing Sections") as pbar:
         for idx, section in enumerate(sections):
+            # Initialize the main datastore
             main_data[section.id] = {
                 'course_title': section.course_title,
                 'course_id': section.course_id,
@@ -386,31 +417,36 @@ if __name__ == '__main__':
                 'pages': [],
                 'root_folder': []
             }
-
+            
+            # Prepare and initialize paths for data
             section_path = sections_root / str(section.id)
             section_path.mkdir(exist_ok=True)
             (section_path/ 'assignments').mkdir(exist_ok=True)
             (section_path/ 'docs').mkdir(exist_ok=True)
             (section_path/ 'pages').mkdir(exist_ok=True)
 
+            # Loop through all the assignments in the current section
             assignments = sc.get_assignments(section.id, with_attachments=True)
             with tqdm(total=len(assignments), desc=f"Processing Assignments for {section.course_title}") as apbar:
                 for assignment in assignments:
                     process_item(assignment, 'assignment', section_path, section.id)
                     apbar.update(1)
             
+            # Loop through all the documents in the current section
             docs = sc.get_section_documents(section.id)
             with tqdm(total=len(docs), desc=f"Processing Documents for {section.course_title}") as dpbar:
                 for doc in docs:
                     process_item(doc, 'document', section_path, section.id)
                     dpbar.update(1)
             
+            # Loop through all the pages in the current section
             pages = sc.get_pages(section.id, True)
             with tqdm(total=len(pages), desc=f"Processing Pages for {section.course_title}") as ppbar:
                 for page in pages:
                     process_item(page, 'page', section_path, section.id)
                     dpbar.update(1)
 
+            # Loop through all the folders and subfolders in the current section
             section_root_folder = sc.get_section_folder(section.id, 0)
             with tqdm(total=len(getattr(section_root_folder, 'folder-item')), desc=f"Processing Folders for {section.course_title}") as fpbar:
                 for item in getattr(section_root_folder, 'folder-item'):
@@ -424,10 +460,14 @@ if __name__ == '__main__':
                         })
                     fpbar.update(1)
 
+            # Export the HTML file for this section
             generate_section_html_with_folders(main_data[section.id], f'{section_path}/section.html')
+            # Update the progress bar
             pbar.update(1)
 
+    # Generate the main HTML file
     generate_html(main_data, Path.joinpath(root_path, 'index.html'))
 
+    # Save the data store to a JSON file in the data path
     with open(Path.joinpath(root_path, 'schoology_data.json'), 'w') as f:
         json.dump(main_data, f, indent=4)
