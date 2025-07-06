@@ -103,7 +103,7 @@ wheels = [
 
 [[package]]
 name = "schoology-backup"
-version = "0.1.0"
+version = "0.0.4"
 source = { virtual = "." }
 dependencies = [
     { name = "schoolopy" },
@@ -112,22 +112,15 @@ dependencies = [
 
 [package.metadata]
 requires-dist = [
-    { name = "schoolopy", directory = "../schoolopy" },
+    { name = "schoolopy", git = "https://github.com/ErikBoesen/schoolopy" },
     { name = "tqdm", specifier = ">=4.67.1" },
 ]
 
 [[package]]
 name = "schoolopy"
 version = "0.3.2"
-source = { directory = "../schoolopy" }
+source = { git = "https://github.com/ErikBoesen/schoolopy#626ddf1bdf82e668730179088e88124d6dbe3b09" }
 dependencies = [
-    { name = "oauthlib" },
-    { name = "requests" },
-    { name = "requests-oauthlib" },
-]
-
-[package.metadata]
-requires-dist = [
     { name = "oauthlib" },
     { name = "requests" },
     { name = "requests-oauthlib" },

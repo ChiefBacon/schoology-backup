@@ -5,9 +5,9 @@ description = "A simple tool to help back up course data from Schoology!"
 readme = "README.md"
 requires-python = ">=3.12"
 dependencies = [
-    "schoolopy",
+    "schoolopy>=0.3.2",
     "tqdm>=4.67.1",
 ]
 
 [tool.uv.sources]
-schoolopy = { path = "../schoolopy" }
+schoolopy = { git = "https://github.com/ErikBoesen/schoolopy" }
