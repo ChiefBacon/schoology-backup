@@ -6,6 +6,10 @@ import argparse
 import tomllib
 import html as ht
 import shutil
+import datetime
+
+now = datetime.datetime.now()
+friendlydate = now.strftime("%b %-m, %Y")
 
 # Define parser for CLI Args
 parser = argparse.ArgumentParser(
@@ -13,14 +17,14 @@ parser = argparse.ArgumentParser(
                     description='Back up a bunch of helpful schoology data')
 
 parser.add_argument("-c", "--config", type=Path, required=False, help="Path to a config file, default is \"config.toml\"")
-parser.add_argument("-o", "--output", type=Path, required=False, help="Output directory, default is \"backup/\"")
-parser.add_argument("-v", "--converted", action="store_true", help="Download the converted versions of files from Schoology")
+parser.add_argument("-o", "--output", type=Path, required=False, help=f"Output directory, default is \"Schoology Backup - {friendlydate}\"")
+parser.add_argument("-v", "--converted", action="store_true", help="Download the converted versions of files from Schoology (PDF instead of .docx, etc.)")
 
 args = parser.parse_args()
 
 # Define some configuration variables
 config_path = args.config if args.config is not None else Path('config.toml')
-root_path = Path(args.output) if args.output is not None else Path('backup')
+root_path = Path(args.output) if args.output is not None else Path(f'Schoology Backup {friendlydate}')
 root_path.mkdir(exist_ok=True)
 shutil.copyfile(Path('resources') / Path('style.css'), root_path / Path('style.css'))
 sections_root = (root_path / 'sections')
